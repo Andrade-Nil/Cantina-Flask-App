@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime
 import pytz
-import os
+import psycopg2
 
 sys.stdout.flush()
 
@@ -15,7 +15,7 @@ usuario_valido = 'admin'
 senha_valida = '123'
 
 # Configurações do SQLite
-DATABASE = 'alunos.db'
+DATABASE = os.path.join(os.environ['VERCEL_TMP'], 'alunos.db')
 
 @app.route('/')
 def index():
@@ -38,13 +38,15 @@ def login():
 @app.route('/principal')
 def pagina_principal():
     try:
-        create_table()
-        # Consultar dados dos alunos no banco de dados
-        with sqlite3.connect(DATABASE) as con:
-            con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
-            cur = con.cursor()
-            cur.execute('SELECT id, nome, ano, turno, credito FROM alunos ORDER BY ano, turno, nome')
-            alunos = cur.fetchall()
+        conn = psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        )
+        cur = conn.cursor()
+        cur.execute('SELECT id, nome, ano, turno, credito FROM alunos ORDER BY ano, turno, nome')
+        alunos = cur.fetchall()
 
         # Organizar os alunos por ano e turno
         alunos_por_turno_e_ano = {}
@@ -70,37 +72,42 @@ def pagina_principal():
 
 # Função para criar a tabela se ela não existir
 def create_table():
-    with sqlite3.connect(DATABASE) as con:
-        cur = con.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS alunos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome TEXT,
-                turno TEXT,
-                ano TEXT,
-                responsavel TEXT,
-                contato TEXT,
-                credito TEXT,
-                segunda TEXT DEFAULT '0,00',
-                terca TEXT DEFAULT '0,00',
-                quarta TEXT DEFAULT '0,00',
-                quinta TEXT DEFAULT '0,00',
-                sexta TEXT DEFAULT '0,00'
-            )
-        ''')
-
-        # Adicione a tabela historico_consumo se ainda não existir
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS historico_consumo (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                aluno_id INTEGER,
-                data TEXT,
-                valor REAL,
-                tipo_transacao TEXT,
-                FOREIGN KEY (aluno_id) REFERENCES alunos(id)
-            )
-        ''')
-
+    conn = psycopg2.connect(
+        host="silly.db.elephantsql.com",
+        database="ttrillsq",
+        user="ttrillsq",
+        password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+    )
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS alunos (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            turno TEXT,
+            ano TEXT,
+            responsavel TEXT,
+            contato TEXT,
+            credito TEXT,
+            segunda TEXT DEFAULT '0,00',
+            terca TEXT DEFAULT '0,00',
+            quarta TEXT DEFAULT '0,00',
+            quinta TEXT DEFAULT '0,00',
+            sexta TEXT DEFAULT '0,00'
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS historico_consumo (
+            id SERIAL PRIMARY KEY,
+            aluno_id INTEGER,
+            data TEXT,
+            valor REAL,
+            tipo_transacao TEXT,
+            FOREIGN KEY (aluno_id) REFERENCES alunos(id)
+        )
+    ''')
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # Rota para lidar com o envio do formulário
 @app.route('/cadastrar', methods=['GET', 'POST'])
