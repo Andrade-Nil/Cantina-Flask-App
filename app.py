@@ -13,68 +13,64 @@ app = Flask(__name__)
 usuario_valido = 'admin'
 senha_valida = '123'
 
+DATABASE = 'alunos.db'
 
 @app.route('/')
 def index():
-  return render_template('login.html')
+    return render_template('login.html')
 
 
 @app.route('/login', methods=['POST'])
 def login():
-  usuario_digitado = request.form.get('usuario')
-  senha_digitada = request.form.get('senha')
+    usuario_digitado = request.form.get('usuario')
+    senha_digitada = request.form.get('senha')
 
-  if usuario_digitado == usuario_valido and senha_digitada == senha_valida:
-    # Se as credenciais são válidas, redireciona para a página principal
-    return redirect(url_for('pagina_principal'))
-  else:
-    # Se as credenciais são inválidas, exibe uma mensagem de erro
-    return render_template('login.html',
-                           erro='Credenciais inválidas. Tente novamente.')
+    if usuario_digitado == usuario_valido and senha_digitada == senha_valida:
+        # Se as credenciais são válidas, redireciona para a página principal
+        return redirect(url_for('pagina_principal'))
+    else:
+        # Se as credenciais são inválidas, exibe uma mensagem de erro
+        return render_template('login.html', erro='Credenciais inválidas. Tente novamente.')
 
 
 @app.route('/principal')
 def pagina_principal():
-  create_table()
-  # Consultar dados dos alunos no banco de dados
-  with sqlite3.connect(DATABASE) as con:
-    con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
-    cur = con.cursor()
-    cur.execute(
-        'SELECT id, nome, ano, turno, credito FROM alunos ORDER BY ano, turno, nome'
-    )
-    alunos = cur.fetchall()
+    try:
+        create_table()
+        # Consultar dados dos alunos no banco de dados
+        with sqlite3.connect(DATABASE) as con:
+            con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
+            cur = con.cursor()
+            cur.execute('SELECT id, nome, ano, turno, credito FROM alunos ORDER BY ano, turno, nome')
+            alunos = cur.fetchall()
 
-  # Organizar os alunos por ano e turno
-  alunos_por_turno_e_ano = {}
-  for aluno in alunos:
-    ano = aluno['ano']
-    turno = aluno['turno']
+        # Organizar os alunos por ano e turno
+        alunos_por_turno_e_ano = {}
+        for aluno in alunos:
+            ano = aluno['ano']
+            turno = aluno['turno']
 
-    if turno not in alunos_por_turno_e_ano:
-      alunos_por_turno_e_ano[turno] = {}
+            if turno not in alunos_por_turno_e_ano:
+                alunos_por_turno_e_ano[turno] = {}
 
-    if ano not in alunos_por_turno_e_ano[turno]:
-      alunos_por_turno_e_ano[turno][ano] = []
+            if ano not in alunos_por_turno_e_ano[turno]:
+                alunos_por_turno_e_ano[turno][ano] = []
 
-    alunos_por_turno_e_ano[turno][ano].append(aluno)
+            alunos_por_turno_e_ano[turno][ano].append(aluno)
 
-  # Passar informações dos turnos para o template
-  turnos = set(aluno['turno'] for aluno in alunos)
-  return render_template('principal.html',
-                         alunos_por_turno_e_ano=alunos_por_turno_e_ano,
-                         turnos=turnos)
-
-
-# Configurações do SQLite
-DATABASE = 'alunos.db'
+        # Passar informações dos turnos para o template
+        turnos = set(aluno['turno'] for aluno in alunos)
+        return render_template('principal.html', alunos_por_turno_e_ano=alunos_por_turno_e_ano, turnos=turnos)
+    except Exception as e:
+        print(f"Erro ao carregar a página principal: {e}")
+        return render_template('erro.html', erro=str(e)), 500
 
 
 # Função para criar a tabela se ela não existir
 def create_table():
-  with sqlite3.connect(DATABASE) as con:
-    cur = con.cursor()
-    cur.execute('''
+    with sqlite3.connect(DATABASE) as con:
+        cur = con.cursor()
+        cur.execute('''
             CREATE TABLE IF NOT EXISTS alunos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT,
@@ -91,8 +87,8 @@ def create_table():
             )
         ''')
 
-    # Adicione a tabela historico_consumo se ainda não existir
-    cur.execute('''
+        # Adicione a tabela historico_consumo se ainda não existir
+        cur.execute('''
             CREATE TABLE IF NOT EXISTS historico_consumo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 aluno_id INTEGER,
@@ -102,6 +98,7 @@ def create_table():
                 FOREIGN KEY (aluno_id) REFERENCES alunos(id)
             )
         ''')
+
 
 
 
