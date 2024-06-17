@@ -15,7 +15,7 @@ usuario_valido = 'admin'
 senha_valida = '123'
 
 # Configurações do SQLite
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'alunos.db')
+DATABASE = 'alunos.db'
 
 @app.route('/')
 def index():
