@@ -14,6 +14,7 @@ app = Flask(__name__)
 usuario_valido = 'admin'
 senha_valida = '123'
 
+# Caminho absoluto para o banco de dados
 DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alunos.db')
 
 @app.route('/')
