@@ -4,6 +4,7 @@ import json
 import sys
 from datetime import datetime
 import pytz
+import os
 
 sys.stdout.flush()
 
@@ -13,7 +14,7 @@ app = Flask(__name__)
 usuario_valido = 'admin'
 senha_valida = '123'
 
-DATABASE = 'alunos.db'
+DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alunos.db')
 
 @app.route('/')
 def index():
