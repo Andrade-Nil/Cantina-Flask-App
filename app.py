@@ -40,7 +40,7 @@ def pagina_principal():
     try:
         create_table()
         # Consultar dados dos alunos no banco de dados
-        with sqlite3.connect(':memory:') as con:
+        with sqlite3.connect(DATABASE) as con:
             con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
             cur = con.cursor()
             cur.execute('SELECT id, nome, ano, turno, credito FROM alunos ORDER BY ano, turno, nome')
@@ -70,7 +70,7 @@ def pagina_principal():
 
 # Função para criar a tabela se ela não existir
 def create_table():
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
         cur = con.cursor()
         cur.execute('''
             CREATE TABLE IF NOT EXISTS alunos (
@@ -125,7 +125,7 @@ def cadastrar():
 
         try:
             # Inserir dados no banco de dados
-            with sqlite3.connect(':memory:') as con:
+            with sqlite3.connect(DATABASE) as con:
                 cur = con.cursor()
                 cur.execute(
                     'INSERT INTO alunos (nome, turno, ano, responsavel, contato, credito, segunda, terca, quarta, quinta, sexta) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
@@ -145,7 +145,7 @@ def cadastrar():
 @app.route('/lista_alunos')
 def lista_alunos():
   # Consultar dados dos alunos no banco de dados
-  with sqlite3.connect(':memory:') as con:
+  with sqlite3.connect(DATABASE) as con:
     con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
     cur = con.cursor()
     cur.execute(
@@ -180,7 +180,7 @@ def lista_alunos():
 def editar_aluno(aluno_id):
   if request.method == 'GET':
     # Consultar dados do aluno pelo ID e passar para o template
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       con.row_factory = sqlite3.Row
       cur = con.cursor()
       cur.execute('SELECT * FROM alunos WHERE id = ?', (aluno_id, ))
@@ -197,7 +197,7 @@ def editar_aluno(aluno_id):
     credito = request.form.get('credito')
 
     # Atualizar os dados no banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute(
           '''
@@ -214,7 +214,7 @@ def editar_aluno(aluno_id):
 @app.route('/historico/<int:aluno_id>')
 def historico(aluno_id):
   # Consultar histórico de consumo do aluno no banco de dados
-  with sqlite3.connect(':memory:') as con:
+  with sqlite3.connect(DATABASE) as con:
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.execute(
@@ -223,7 +223,7 @@ def historico(aluno_id):
     historico_consumo = cur.fetchall()
 
   # Consultar dados do aluno para exibir na página
-  with sqlite3.connect(':memory:') as con:
+  with sqlite3.connect(DATABASE) as con:
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.execute('SELECT nome, credito FROM alunos WHERE id = ?', (aluno_id, ))
@@ -244,14 +244,14 @@ def atualizar_consumo_diario():
     consumo_diario = float(data['consumoDiario'])
 
     # Atualizar o consumo diário no banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute(f'UPDATE alunos SET {dia_semana} = ? WHERE id = ?',
                   (consumo_diario, aluno_id))
       con.commit()
 
     # Atualizar o valor total da semana no banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute(
           'UPDATE alunos SET credito = ?, segunda = ?, terca = ?, quarta = ?, quinta = ?, sexta = ? WHERE id = ?',
@@ -282,7 +282,7 @@ def subtrair_credito():
       consumo_total = float(str(consumo_total).replace(',', '.'))
 
       # Consulta o crédito atual do aluno no banco de dados
-      with sqlite3.connect(':memory:') as con:
+      with sqlite3.connect(DATABASE) as con:
         cur = con.cursor()
         cur.execute('SELECT credito FROM alunos WHERE id = ?', (aluno_id, ))
         result = cur.fetchone()
@@ -307,7 +307,7 @@ def subtrair_credito():
       print(f'Novo crédito do aluno {aluno_id}: {novo_credito}')
 
       # Atualiza o crédito do aluno no banco de dados
-      with sqlite3.connect(':memory:') as con:
+      with sqlite3.connect(DATABASE) as con:
         cur = con.cursor()
 
         # Convertendo novo_credito de float para string com vírgula
@@ -318,7 +318,7 @@ def subtrair_credito():
         con.commit()
 
     # Adiciona dados do histórico ao banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       for historico_item in historico_data:
         cur.execute(
@@ -341,7 +341,7 @@ def realizar_pagamento():
     valor_pagamento = float(data['valorPagamento'].replace(',', '.'))
 
     # Consultar crédito atual do aluno no banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute('SELECT credito FROM alunos WHERE id = ?', (aluno_id, ))
       result = cur.fetchone()
@@ -351,7 +351,7 @@ def realizar_pagamento():
     novo_credito = credito_atual + valor_pagamento
 
     # Adicionar pagamento ao histórico de consumo
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute(
           'INSERT INTO historico_consumo (aluno_id, data, valor, tipo_transacao) VALUES (?, ?, ?, ?)',
@@ -360,7 +360,7 @@ def realizar_pagamento():
       con.commit()
 
     # Atualizar crédito no banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute('UPDATE alunos SET credito = ? WHERE id = ?',
                   ('{:.2f}'.format(novo_credito).replace('.', ','), aluno_id))
@@ -381,7 +381,7 @@ def realizar_pagamento():
 def excluir_aluno(aluno_id):
   try:
     # Execute a lógica para excluir o aluno do banco de dados
-    with sqlite3.connect(':memory:') as con:
+    with sqlite3.connect(DATABASE) as con:
       cur = con.cursor()
       cur.execute('DELETE FROM alunos WHERE id = ?', (aluno_id, ))
       con.commit()
