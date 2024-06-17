@@ -132,14 +132,21 @@ def cadastrar():
 
         try:
             # Inserir dados no banco de dados
-            with sqlite3.connect(DATABASE) as con:
-                cur = con.cursor()
-                cur.execute(
-                    'INSERT INTO alunos (nome, turno, ano, responsavel, contato, credito, segunda, terca, quarta, quinta, sexta) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                    (nome, turno, ano, responsavel, contato, credito, segunda, terca,
-                     quarta, quinta, sexta))
-                con.commit()
-        except sqlite3.Error as e:
+            conn = psycopg2.connect(
+                host="silly.db.elephantsql.com",
+                database="ttrillsq",
+                user="ttrillsq",
+                password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+            )
+            cur = conn.cursor()
+            cur.execute(
+                'INSERT INTO alunos (nome, turno, ano, responsavel, contato, credito, segunda, terca, quarta, quinta, sexta) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                (nome, turno, ano, responsavel, contato, credito, segunda, terca,
+                 quarta, quinta, sexta))
+            conn.commit()
+            cur.close()
+            conn.close()
+        except psycopg2.Error as e:
             return f'Erro ao inserir dados no banco de dados: {e}', 500
 
         # Redirecionar para a página de cadastro
@@ -147,6 +154,7 @@ def cadastrar():
                              success_message='Cadastro realizado com sucesso!')
 
     return render_template('cadastro.html')
+
 
 # Rota para exibir a lista de alunos
 @app.route('/lista_alunos')
