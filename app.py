@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 import pytz
 import psycopg2
+import os
 
 sys.stdout.flush()
 
@@ -160,9 +161,13 @@ def cadastrar():
 @app.route('/lista_alunos')
 def lista_alunos():
   # Consultar dados dos alunos no banco de dados
-  with sqlite3.connect(DATABASE) as con:
-    con.row_factory = sqlite3.Row  # Para acessar as colunas pelo nome
-    cur = con.cursor()
+  with psycopg2.connect(
+    host="silly.db.elephantsql.com",
+    database="ttrillsq",
+    user="ttrillsq",
+    password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+  ) as conn:
+    cur = conn.cursor()
     cur.execute(
         'SELECT id, nome, turno, ano, responsavel, contato, credito FROM alunos ORDER BY ano, turno, nome'
     )
@@ -190,221 +195,213 @@ def lista_alunos():
                          turnos=turnos)
 
 
+
 # Rota para editar alunos
 @app.route('/editar_aluno/<int:aluno_id>', methods=['GET', 'POST'])
 def editar_aluno(aluno_id):
-  if request.method == 'GET':
-    # Consultar dados do aluno pelo ID e passar para o template
-    with sqlite3.connect(DATABASE) as con:
-      con.row_factory = sqlite3.Row
-      cur = con.cursor()
-      cur.execute('SELECT * FROM alunos WHERE id = ?', (aluno_id, ))
-      aluno = cur.fetchone()
+    if request.method == 'GET':
+        # Consultar dados do aluno pelo ID e passar para o template
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM alunos WHERE id = %s', (aluno_id, ))
+            aluno = cur.fetchone()
 
-    return render_template('editar_aluno.html', aluno=aluno)
-  elif request.method == 'POST':
-    # Obter os dados atualizados do formulário
-    nome = request.form.get('nome')
-    ano = request.form.get('ano')
-    turno = request.form.get('turno')
-    responsavel = request.form.get('responsavel')
-    contato = request.form.get('contato')
-    credito = request.form.get('credito')
+        return render_template('editar_aluno.html', aluno=aluno)
+    elif request.method == 'POST':
+        # Obter os dados atualizados do formulário
+        nome = request.form.get('nome')
+        ano = request.form.get('ano')
+        turno = request.form.get('turno')
+        responsavel = request.form.get('responsavel')
+        contato = request.form.get('contato')
+        credito = request.form.get('credito')
 
-    # Atualizar os dados no banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute(
-          '''
-                UPDATE alunos
-                SET nome=?, ano=?, turno=?, responsavel=?, contato=?, credito=?
-                WHERE id=?
-            ''', (nome, ano, turno, responsavel, contato, credito, aluno_id))
+        # Atualizar os dados no banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                '''
+                    UPDATE alunos
+                    SET nome=%s, ano=%s, turno=%s, responsavel=%s, contato=%s, credito=%s
+                    WHERE id=%s
+                ''', (nome, ano, turno, responsavel, contato, credito, aluno_id))
 
-    # Redirecionar para a lista de alunos após a edição
-    return redirect(url_for('lista_alunos'))
+        # Redirecionar para a lista de alunos após a edição
+        return redirect(url_for('lista_alunos'))
 
-
-# Adicione a rota /historico ao seu código Flask
+# Rota para exibir o histórico de consumo de um aluno
 @app.route('/historico/<int:aluno_id>')
 def historico(aluno_id):
-  # Consultar histórico de consumo do aluno no banco de dados
-  with sqlite3.connect(DATABASE) as con:
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    cur.execute(
-        'SELECT data, valor, tipo_transacao FROM historico_consumo WHERE aluno_id = ?',
-        (aluno_id, ))
-    historico_consumo = cur.fetchall()
+    # Consultar histórico de consumo do aluno no banco de dados
+    with psycopg2.connect(
+        host="silly.db.elephantsql.com",
+        database="ttrillsq",
+        user="ttrillsq",
+        password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+    ) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT data, valor, tipo_transacao FROM historico_consumo WHERE aluno_id = %s ORDER BY data DESC',
+            (aluno_id, ))
+        historico_consumo = cur.fetchall()
 
-  # Consultar dados do aluno para exibir na página
-  with sqlite3.connect(DATABASE) as con:
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    cur.execute('SELECT nome, credito FROM alunos WHERE id = ?', (aluno_id, ))
-    aluno = cur.fetchone()
+    # Consultar dados do aluno para exibir na página
+    with psycopg2.connect(
+        host="silly.db.elephantsql.com",
+        database="ttrillsq",
+        user="ttrillsq",
+        password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+    ) as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT nome, credito FROM alunos WHERE id = %s', (aluno_id, ))
+        aluno = cur.fetchone()
 
-  return render_template('historico.html',
+    return render_template('historico.html',
                          aluno=aluno,
                          historico_consumo=historico_consumo)
-
 
 # Modifique a rota /atualizar_consumo_diario para lidar com a atualização dos valores diários
 @app.route('/atualizar_consumo_diario', methods=['POST'])
 def atualizar_consumo_diario():
-  try:
-    data = json.loads(request.data)
-    aluno_id = int(data['alunoId'])
-    dia_semana = data['diaSemana']
-    consumo_diario = float(data['consumoDiario'])
+    try:
+        data = json.loads(request.data)
+        aluno_id = int(data['alunoId'])
+        dia_semana = data['diaSemana']
+        consumo_diario = float(data['consumoDiario'])
 
-    # Atualizar o consumo diário no banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute(f'UPDATE alunos SET {dia_semana} = ? WHERE id = ?',
-                  (consumo_diario, aluno_id))
-      con.commit()
+        # Atualizar o consumo diário no banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute(f'UPDATE alunos SET {dia_semana} = %s WHERE id = %s',
+                        (consumo_diario, aluno_id))
+            conn.commit()
 
-    # Atualizar o valor total da semana no banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute(
-          'UPDATE alunos SET credito = ?, segunda = ?, terca = ?, quarta = ?, quinta = ?, sexta = ? WHERE id = ?',
-          (consumo_diario + aluno['credito'], segunda, terca, quarta, quinta,
-           sexta, aluno_id))
-      con.commit()
+        # Atualizar o valor total da semana no banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                'UPDATE alunos SET credito = credito + %s WHERE id = %s',
+                (consumo_diario, aluno_id))
+            conn.commit()
 
-    
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-    return jsonify({'success': True})
-  except Exception as e:
-    return jsonify({'success': False, 'error': str(e)}), 500
+# Rota para subtrair crédito do aluno
+@app.route('/subtrair_credito/<int:aluno_id>/<float:valor>')
+def subtrair_credito(aluno_id, valor):
+    try:
+        # Subtrair crédito do aluno no banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('UPDATE alunos SET credito = credito - %s WHERE id = %s',
+                        (valor, aluno_id))
+            conn.commit()
 
+        # Registrar transação no histórico de consumo
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('INSERT INTO historico_consumo (aluno_id, data, valor, tipo_transacao) VALUES (%s, NOW(), %s, %s)',
+                        (aluno_id, valor, 'saida'))
+            conn.commit()
 
-@app.route('/subtrair_credito', methods=['POST'])
-def subtrair_credito():
-  try:
-    # Carrega os dados JSON recebidos
-    data = json.loads(request.data)
-    print(f'Dados recebidos para atualização de crédito: {data}')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-    # Lista para armazenar dados do histórico antes da subtração
-    historico_data = []
+# Rota para realizar pagamento do aluno
+@app.route('/realizar_pagamento/<int:aluno_id>/<float:valor>', methods=['POST'])
+def realizar_pagamento(aluno_id, valor):
+    try:
+        # Realizar pagamento do aluno no banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('UPDATE alunos SET credito = credito + %s WHERE id = %s',
+                        (valor, aluno_id))
+            conn.commit()
 
-    # Percorre os dados enviados pelo frontend
-    for aluno_id, consumo_total in data.items():
-      aluno_id = int(aluno_id)
-      consumo_total = float(str(consumo_total).replace(',', '.'))
+        # Registrar transação no histórico de consumo
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('INSERT INTO historico_consumo (aluno_id, data, valor, tipo_transacao) VALUES (%s, NOW(), %s, %s)',
+                        (aluno_id, valor, 'entrada'))
+            conn.commit()
 
-      # Consulta o crédito atual do aluno no banco de dados
-      with sqlite3.connect(DATABASE) as con:
-        cur = con.cursor()
-        cur.execute('SELECT credito FROM alunos WHERE id = ?', (aluno_id, ))
-        result = cur.fetchone()
-        credito_atual = float(str(result[0]).replace(',',
-                                                     '.')) if result else 0.0
-
-        # Adiciona dados ao histórico antes da subtração
-        historico_data.append({
-            'aluno_id':
-            aluno_id,
-            'data':
-            datetime.now(pytz.timezone('America/Campo_Grande')).strftime(
-                '%d-%m-%Y %H:%M:%S'),
-            'valor':
-            consumo_total,
-            'tipo_transacao':
-            'consumo'
-        })
-
-      # Calcula o novo crédito
-      novo_credito = credito_atual - consumo_total
-      print(f'Novo crédito do aluno {aluno_id}: {novo_credito}')
-
-      # Atualiza o crédito do aluno no banco de dados
-      with sqlite3.connect(DATABASE) as con:
-        cur = con.cursor()
-
-        # Convertendo novo_credito de float para string com vírgula
-        credito = '{:.2f}'.format(novo_credito).replace('.', ',')
-
-        cur.execute('UPDATE alunos SET credito = ? WHERE id = ?',
-                    (credito, aluno_id))
-        con.commit()
-
-    # Adiciona dados do histórico ao banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      for historico_item in historico_data:
-        cur.execute(
-            'INSERT INTO historico_consumo (aluno_id, data, valor, tipo_transacao) VALUES (?, ?, ?, ?)',
-            (historico_item['aluno_id'], historico_item['data'],
-             historico_item['valor'], historico_item['tipo_transacao']))
-        con.commit()
-
-    return jsonify({'success': True})
-  except Exception as e:
-    print(f"Erro interno: {e}")
-    return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/realizar_pagamento', methods=['POST'])
-def realizar_pagamento():
-  try:
-    data = json.loads(request.data)
-    aluno_id = int(data['alunoId'])
-    valor_pagamento = float(data['valorPagamento'].replace(',', '.'))
-
-    # Consultar crédito atual do aluno no banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute('SELECT credito FROM alunos WHERE id = ?', (aluno_id, ))
-      result = cur.fetchone()
-      credito_atual = float(result[0].replace(',', '.')) if result else 0.0
-
-    # Calcular novo crédito
-    novo_credito = credito_atual + valor_pagamento
-
-    # Adicionar pagamento ao histórico de consumo
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute(
-          'INSERT INTO historico_consumo (aluno_id, data, valor, tipo_transacao) VALUES (?, ?, ?, ?)',
-          (aluno_id, datetime.now(pytz.timezone('America/Campo_Grande')).
-           strftime('%d-%m-%Y %H:%M:%S'), valor_pagamento, 'pagamento'))
-      con.commit()
-
-    # Atualizar crédito no banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute('UPDATE alunos SET credito = ? WHERE id = ?',
-                  ('{:.2f}'.format(novo_credito).replace('.', ','), aluno_id))
-      con.commit()
-
-    return jsonify({
-        'success':
-        True,
-        'novoCredito':
-        '{:.2f}'.format(novo_credito).replace('.', ',')
-    })
-  except Exception as e:
-    return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# Adicione esta rota para lidar com a exclusão do aluno
-@app.route('/excluir_aluno/<int:aluno_id>', methods=['GET'])
+# Rota para excluir aluno
+@app.route('/excluir_aluno/<int:aluno_id>', methods=['DELETE'])
 def excluir_aluno(aluno_id):
-  try:
-    # Execute a lógica para excluir o aluno do banco de dados
-    with sqlite3.connect(DATABASE) as con:
-      cur = con.cursor()
-      cur.execute('DELETE FROM alunos WHERE id = ?', (aluno_id, ))
-      con.commit()
+    try:
+        # Excluir aluno do banco de dados
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('DELETE FROM alunos WHERE id = %s', (aluno_id,))
+            conn.commit()
 
-    return jsonify({'success': True})
-  except Exception as e:
-    return jsonify({'success': False, 'error': str(e)}), 500
+        # Excluir histórico de consumo do aluno
+        with psycopg2.connect(
+            host="silly.db.elephantsql.com",
+            database="ttrillsq",
+            user="ttrillsq",
+            password="6vYRHBpb3g9DzhB9hKlYj6rGZnoJZWzy"
+        ) as conn:
+            cur = conn.cursor()
+            cur.execute('DELETE FROM historico_consumo WHERE aluno_id = %s', (aluno_id,))
+            conn.commit()
 
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     create_table()
