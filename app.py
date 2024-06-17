@@ -168,28 +168,35 @@ def create_table():
 
 
 # Rota para lidar com o envio do formulário
-@app.route('/cadastro', methods=['GET', 'POST'])
+@app.route('/cadastrar', methods=['GET', 'POST'])
 def cadastrar():
-    if request.method == 'POST':
-        nome = request.form['nome']
-        ano = request.form['ano']
-        turno = request.form['turno']
-        responsavel = request.form['responsavel']
-        contato = request.form['contato']
-        credito = request.form['credito'].replace('R$', '').replace('.', '').replace(',', '.').strip()
-        
-        conn = sqlite3.connect('database.db')
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO alunos (nome, ano, turno, responsavel, contato, credito)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (nome, ano, turno, responsavel, contato, float(credito)))
-        conn.commit()
-        conn.close()
-        
-        return redirect(url_for('cadastrar', success_message="Aluno cadastrado com sucesso!"))
-    
-    return render_template('cadastro.html')
+  create_table()
+  if request.method == 'POST':
+    nome = request.form['nome']
+    turno = request.form['turno']
+    ano = request.form['ano']
+    responsavel = request.form['responsavel']
+    contato = request.form['contato']
+    credito = request.form['credito']
+    segunda = '0,00'
+    terca = '0,00'
+    quarta = '0,00'
+    quinta = '0,00'
+    sexta = '0,00'
+
+    # Inserir dados no banco de dados
+    with sqlite3.connect(DATABASE) as con:
+      cur = con.cursor()
+      cur.execute(
+          'INSERT INTO alunos (nome, turno, ano, responsavel, contato, credito, segunda, terca, quarta, quinta, sexta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          (nome, turno, ano, responsavel, contato, credito, segunda, terca,
+           quarta, quinta, sexta))
+      con.commit()
+
+  # Redirecionar para a página de cadastro
+  return render_template('cadastro.html',
+                         success_message='Cadastro realizado com sucesso!')
+
 
 # Rota para exibir a lista de alunos
 @app.route('/lista_alunos')
